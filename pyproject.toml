@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "pykis"
+version = "0.1.0"
+description = "CCXT-style Python wrapper for KIS API (국내 주식)"
+authors = ["Your Name <you@example.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "pykis", from = "src" }]
+keywords = ["trading", "korea", "stocks", "api", "kis"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+httpx = "^0.27.0"
+pydantic = "^2.5.0"
+websockets = "^12.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^4.1.0"
+pytest-asyncio = "^0.23.0"
+ruff = "^0.1.0"
+mypy = "^1.8.0"
+respx = "^0.20.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --cov=pykis"
