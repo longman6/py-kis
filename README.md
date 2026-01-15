@@ -7,7 +7,8 @@ CCXT 스타일의 직관적인 인터페이스로 국내 주식을 거래하세�
 ## 설치
 
 ```bash
-pip install pykis
+pip install git+https://github.com/longman6/py-kis.git
+## pip install pykis
 ```
 
 ## 빠른 시작
