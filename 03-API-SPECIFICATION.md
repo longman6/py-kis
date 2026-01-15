@@ -143,6 +143,86 @@ for candle in ohlcv[-5:]:
 
 ---
 
+### 2.4 fetch_ohlcv_range(symbol, start_date, end_date, timeframe)
+
+특정 기간의 OHLCV 조회 (여러 번 API 호출)
+
+```python
+def fetch_ohlcv_range(
+    self,
+    symbol: str,
+    start_date: str,
+    end_date: Optional[str] = None,
+    timeframe: str = "1d",
+) -> List[OHLCV]
+```
+
+**Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| symbol | str | ✓ | 종목 코드 |
+| start_date | str | ✓ | 시작일 ("YYYYMMDD" 또는 "YYYY-MM-DD") |
+| end_date | str | | 종료일 (기본: 오늘) |
+| timeframe | str | | "1d", "1w", "1M" |
+
+**Example:**
+```python
+# 2020년 1월 1일부터 오늘까지
+ohlcv = kis.fetch_ohlcv_range("005930", "20200101")
+
+# 특정 기간
+ohlcv = kis.fetch_ohlcv_range("005930", "2023-01-01", "2023-12-31")
+
+# DataFrame으로 변환
+import pandas as pd
+df = pd.DataFrame([{
+    'date': o.datetime,
+    'open': o.open,
+    'high': o.high,
+    'low': o.low,
+    'close': o.close,
+    'volume': o.volume
+} for o in ohlcv])
+```
+
+⚠️ **주의:** 내부적으로 여러 번 API를 호출하므로 Rate Limit을 자동으로 고려합니다. 모의투자의 경우 초당 2건 제한으로 시간이 오래 걸릴 수 있습니다.
+
+---
+
+### 2.5 fetch_minute_ohlcv(symbol, interval)
+
+당일 분봉 조회
+
+```python
+def fetch_minute_ohlcv(
+    self,
+    symbol: str,
+    interval: int = 1,
+) -> List[OHLCV]
+```
+
+**Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| symbol | str | ✓ | 종목 코드 |
+| interval | int | | 분 간격 (1, 3, 5, 10, 15, 30, 60) |
+
+**Example:**
+```python
+# 당일 1분봉
+ohlcv = kis.fetch_minute_ohlcv("005930")
+
+# 당일 5분봉
+ohlcv = kis.fetch_minute_ohlcv("005930", interval=5)
+
+for candle in ohlcv[-5:]:
+    print(f"{candle.datetime.strftime('%H:%M')}: {candle.close:,.0f}원")
+```
+
+⚠️ **제한사항:** KIS API 특성상 **당일 데이터만** 조회 가능합니다.
+
+---
+
 ## 3. Trading API
 
 ### 3.1 create_limit_order(symbol, side, amount, price)
