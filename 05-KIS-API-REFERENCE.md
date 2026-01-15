@@ -158,6 +158,80 @@ FID_ORG_ADJ_PRC: "0"           // 0:수정주가
 
 ---
 
+### 3.4 기간별 일봉 차트 (OHLCV)
+
+**GET** `/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice`
+
+**TR_ID:** `FHKST03010100`
+
+**Parameters:**
+```
+FID_COND_MRKT_DIV_CODE: "J"
+FID_INPUT_ISCD: "005930"
+FID_INPUT_DATE_1: "20200101"   // 시작일 (YYYYMMDD)
+FID_INPUT_DATE_2: "20260115"   // 종료일 (YYYYMMDD)
+FID_PERIOD_DIV_CODE: "D"       // D:일, W:주, M:월
+FID_ORG_ADJ_PRC: "0"           // 0:수정주가
+```
+
+**Response:**
+```json
+{
+    "output2": [
+        {
+            "stck_bsop_date": "20260114",  // 일자
+            "stck_oprc": "57000",          // 시가
+            "stck_hgpr": "58000",          // 고가
+            "stck_lwpr": "56500",          // 저가
+            "stck_clpr": "57500",          // 종가
+            "acml_vol": "15000000",        // 거래량
+            "prdy_vrss": "500",            // 전일대비
+            "prdy_vrss_sign": "2"          // 부호
+        }
+    ]
+}
+```
+
+⚠️ **주의:** 한 번 호출에 최대 100개 데이터 반환. 전체 기간 조회 시 여러 번 호출 필요.
+
+---
+
+### 3.5 분봉 시세
+
+**GET** `/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice`
+
+**TR_ID:** `FHKST03010200`
+
+**Parameters:**
+```
+FID_ETC_CLS_CODE: ""
+FID_COND_MRKT_DIV_CODE: "J"
+FID_INPUT_ISCD: "005930"
+FID_INPUT_HOUR_1: "153000"     // 시작시간 (HHMMSS)
+FID_PW_DATA_INCU_YN: "N"
+```
+
+**Response:**
+```json
+{
+    "output2": [
+        {
+            "stck_bsop_date": "20260115",  // 일자
+            "stck_cntg_hour": "153000",    // 체결시간 (HHMMSS)
+            "stck_prpr": "57500",          // 현재가
+            "stck_oprc": "57400",          // 시가
+            "stck_hgpr": "57600",          // 고가
+            "stck_lwpr": "57300",          // 저가
+            "cntg_vol": "25000"            // 체결량
+        }
+    ]
+}
+```
+
+⚠️ **제한사항:** **당일 데이터만** 조회 가능.
+
+---
+
 ## 4. 주문 API
 
 ### 4.1 주문 (매수/매도)
@@ -334,10 +408,41 @@ CTX_AREA_NK100: ""
 | EGW00002 | 토큰 만료 |
 | OPSP0001 | 잔고 부족 |
 | OPSP0010 | 장 마감 |
+| EGW00121 | 초당 거래건수 초과 |
 
 ---
 
 ## 7. Rate Limit
 
-- 초당 최대 **20건** 요청
-- 초과 시 HTTP 429 응답
+| 환경 | 제한 | 비고 |
+|------|------|------|
+| 실전투자 | 초당 20건 | 계좌당 |
+| 모의투자 | 초당 2건 | |
+
+- 초과 시 `EGW00121` 에러 또는 HTTP 429 응답
+- 기간별 일봉 조회 시 여러 번 호출 필요 → Rate Limit 고려 필요
+
+---
+
+## 8. WebSocket
+
+### 기본 정보
+
+| 환경 | URL |
+|------|-----|
+| 실전투자 | ws://ops.koreainvestment.com:21000 |
+| 모의투자 | ws://ops.koreainvestment.com:31000 |
+
+### 제한
+
+- 1세션
+- 실시간 데이터 합산 41건까지 등록 가능
+
+### TR_ID
+
+| 기능 | TR_ID |
+|------|-------|
+| 실시간 체결가 | H0STCNT0 |
+| 실시간 호가 | H0STASP0 |
+| 체결통보 | H0STCNI0 (실전) / H0STCNI9 (모의) |
+
