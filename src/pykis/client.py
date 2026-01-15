@@ -68,7 +68,7 @@ class KIS:
         self._http = HTTPClient(base_url, self._auth)
         
         # API 모듈 초기화
-        self._quote = QuoteAPI(self._http)
+        self._quote = QuoteAPI(self._http, is_paper)
         self._order = OrderAPI(self._http, account_no, is_paper)
         self._account = AccountAPI(self._http, account_no, is_paper)
     
@@ -141,6 +141,76 @@ class KIS:
             ```
         """
         return self._quote.fetch_ohlcv(symbol, timeframe, limit)
+    
+    def fetch_ohlcv_range(
+        self,
+        symbol: str,
+        start_date: str,
+        end_date: Optional[str] = None,
+        timeframe: str = "1d",
+    ) -> List[OHLCV]:
+        """
+        특정 기간의 OHLCV (캔들) 데이터를 조회합니다.
+        
+        내부적으로 여러 번 API를 호출하여 전체 기간의 데이터를 수집합니다.
+        모의투자의 경우 Rate Limit(초당 2건)을 고려해 시간이 오래 걸릴 수 있습니다.
+        
+        Args:
+            symbol: 종목 코드 (예: "005930")
+            start_date: 시작일 ("YYYYMMDD" 또는 "YYYY-MM-DD")
+            end_date: 종료일 ("YYYYMMDD" 또는 "YYYY-MM-DD", 기본: 오늘)
+            timeframe: 기간 구분 ("1d", "1w", "1M")
+            
+        Returns:
+            OHLCV 리스트 (과거 → 최근 순)
+            
+        Example:
+            ```python
+            # 2020년 1월 1일부터 오늘까지
+            ohlcv = kis.fetch_ohlcv_range("005930", "20200101")
+            
+            # 특정 기간
+            ohlcv = kis.fetch_ohlcv_range("005930", "2023-01-01", "2023-12-31")
+            
+            # DataFrame으로 변환
+            import pandas as pd
+            df = pd.DataFrame([{'date': o.datetime, 'open': o.open, 'high': o.high,
+                               'low': o.low, 'close': o.close, 'volume': o.volume}
+                              for o in ohlcv])
+            ```
+        """
+        return self._quote.fetch_ohlcv_range(symbol, start_date, end_date, timeframe)
+    
+    def fetch_minute_ohlcv(
+        self,
+        symbol: str,
+        interval: int = 1,
+    ) -> List[OHLCV]:
+        """
+        당일 분봉 데이터를 조회합니다.
+        
+        ※ 주의: KIS API 제한으로 당일 데이터만 조회 가능합니다.
+        
+        Args:
+            symbol: 종목 코드 (예: "005930")
+            interval: 분 간격 (1, 3, 5, 10, 15, 30, 60)
+            
+        Returns:
+            OHLCV 리스트 (과거 → 최근 순)
+            
+        Example:
+            ```python
+            # 당일 1분봉
+            ohlcv = kis.fetch_minute_ohlcv("005930")
+            
+            # 당일 5분봉
+            ohlcv = kis.fetch_minute_ohlcv("005930", interval=5)
+            
+            for candle in ohlcv[-5:]:
+                print(f"{candle.datetime.strftime('%H:%M')}: {candle.close:,.0f}원")
+            ```
+        """
+        return self._quote.fetch_minute_ohlcv(symbol, interval)
     
     # =========================================================================
     # Trading API

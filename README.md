@@ -8,7 +8,6 @@ CCXT 스타일의 직관적인 인터페이스로 국내 주식을 거래하세�
 
 ```bash
 pip install git+https://github.com/longman6/py-kis.git
-## pip install pykis
 ```
 
 ## 빠른 시작
@@ -30,8 +29,14 @@ print(f"삼성전자: {ticker.last:,}원 ({ticker.change_percent:+.2f}%)")
 # 호가 조회
 orderbook = kis.fetch_order_book("005930")
 
-# 일봉 조회
+# 일봉 조회 (최근 30개)
 ohlcv = kis.fetch_ohlcv("005930", "1d", limit=30)
+
+# 기간별 일봉 조회 (2020년 1월 1일부터 오늘까지)
+ohlcv = kis.fetch_ohlcv_range("005930", "20200101")
+
+# 당일 분봉 조회
+minute_ohlcv = kis.fetch_minute_ohlcv("005930")
 
 # 지정가 매수
 order = kis.create_limit_order("005930", "buy", 10, 50000)
@@ -46,28 +51,51 @@ kis.cancel_order(order.id, "005930")
 balance = kis.fetch_balance()
 for pos in balance.positions:
     print(f"{pos.name}: {pos.amount}주, {pos.unrealized_pnl_percent:+.2f}%")
+
+kis.close()
 ```
 
 ## 기능
 
-| 기능 | 메서드 |
-|------|--------|
-| 현재가 조회 | `fetch_ticker(symbol)` |
-| 호가 조회 | `fetch_order_book(symbol)` |
-| OHLCV 조회 | `fetch_ohlcv(symbol, timeframe, limit)` |
-| 지정가 주문 | `create_limit_order(symbol, side, amount, price)` |
-| 시장가 주문 | `create_market_order(symbol, side, amount)` |
-| 주문 취소 | `cancel_order(order_id, symbol)` |
-| 미체결 조회 | `fetch_open_orders()` |
-| 잔고 조회 | `fetch_balance()` |
+### 시세 조회
+
+| 기능 | 메서드 | 설명 |
+|------|--------|------|
+| 현재가 조회 | `fetch_ticker(symbol)` | 현재가, 등락률, 거래량 등 |
+| 호가 조회 | `fetch_order_book(symbol)` | 매수/매도 10단계 호가 |
+| OHLCV 조회 | `fetch_ohlcv(symbol, timeframe, limit)` | 최근 일/주/월봉 (최대 100개) |
+| 기간별 OHLCV | `fetch_ohlcv_range(symbol, start_date, end_date)` | 특정 기간 일봉 (여러 번 API 호출) |
+| 당일 분봉 | `fetch_minute_ohlcv(symbol, interval)` | 당일 분봉 (1, 5, 10, 30분 등) |
+
+### 주문/계좌
+
+| 기능 | 메서드 | 설명 |
+|------|--------|------|
+| 지정가 주문 | `create_limit_order(symbol, side, amount, price)` | 지정가 매수/매도 |
+| 시장가 주문 | `create_market_order(symbol, side, amount)` | 시장가 매수/매도 |
+| 주문 취소 | `cancel_order(order_id, symbol)` | 미체결 주문 취소 |
+| 미체결 조회 | `fetch_open_orders()` | 미체결 주문 목록 |
+| 잔고 조회 | `fetch_balance()` | 예수금, 보유종목, 평가금액 |
+
+## Rate Limit
+
+| 환경 | 제한 | 비고 |
+|------|------|------|
+| 실전투자 | 초당 20건 | 계좌당 |
+| 모의투자 | 초당 2건 | |
+| WebSocket | 1세션, 41건 | 실시간 데이터 |
+
+※ `fetch_ohlcv_range`는 내부적으로 여러 번 API를 호출하므로 Rate Limit을 자동으로 고려합니다.
 
 ## 지원 범위
 
 ✅ **포함:**
+
 - 국내 주식 (KOSPI, KOSDAQ)
 - 국내 ETF
 
 ❌ **제외:**
+
 - 해외 주식
 - 채권, 선물, 옵션, ETN, 펀드
 
@@ -120,4 +148,3 @@ MIT
 2. 소액으로 시작하여 점진적으로 테스트하세요
 3. 자동매매 시스템은 24시간 모니터링하세요
 4. 중요한 거래는 수동으로 확인하세요
-

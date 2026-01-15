@@ -1,12 +1,13 @@
 """
 PyKIS OHLCV 모델
 
-캔들(일봉/주봉/월봉) 데이터를 표현하는 모델입니다.
+캔들(일봉/주봉/월봉/분봉) 데이터를 표현하는 모델입니다.
 """
 
 from datetime import datetime
+from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class OHLCV(BaseModel):
@@ -16,14 +17,19 @@ class OHLCV(BaseModel):
     시가, 고가, 저가, 종가, 거래량 정보를 포함합니다.
     """
     
-    timestamp: int        # Unix timestamp (밀리초)
-    datetime: datetime    # 날짜/시간
+    datetime: datetime              # 날짜/시간
+    timestamp: Optional[int] = None # Unix timestamp (밀리초, 선택)
     
-    open: float           # 시가
-    high: float           # 고가
-    low: float            # 저가
-    close: float          # 종가
-    volume: int           # 거래량
+    open: float                     # 시가
+    high: float                     # 고가
+    low: float                      # 저가
+    close: float                    # 종가
+    volume: int                     # 거래량
+    
+    def model_post_init(self, __context):
+        """timestamp가 없으면 datetime에서 생성"""
+        if self.timestamp is None:
+            object.__setattr__(self, 'timestamp', int(self.datetime.timestamp() * 1000))
 
     @classmethod
     def from_kis(cls, item: dict) -> "OHLCV":
