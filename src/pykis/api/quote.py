@@ -343,9 +343,10 @@ class QuoteAPI:
             date_str = current_date.strftime("%Y%m%d")
             
             # 하루에 여러 시간대 조회 (120건씩)
-            times = ["153000", "130000", "100000"]
+            # 하루 전체 데이터 수집을 위한 반복 조회 (09:00 ~ 15:30)
+            search_time = "153000"
             
-            for hour in times:
+            while True:
                 try:
                     data = self._http.get(
                         "/uapi/domestic-stock/v1/quotations/inquire-time-dailychartprice",
@@ -354,19 +355,31 @@ class QuoteAPI:
                             "FID_COND_MRKT_DIV_CODE": MarketCode.STOCK.value,
                             "FID_INPUT_ISCD": symbol,
                             "FID_INPUT_DATE_1": date_str,
-                            "FID_INPUT_HOUR_1": hour,
+                            "FID_INPUT_HOUR_1": search_time,
                             "FID_PW_DATA_INCU_YN": "Y",
                             "FID_FAKE_TICK_INCU_YN": "",
                         },
                     )
                     
                     items = data.get("output2", [])
+                    if not items:
+                        break
+                    
+                    min_time_val = None
                     
                     for item in items:
                         item_date = item.get("stck_bsop_date", "")
                         time_str = item.get("stck_cntg_hour", "")
                         
                         if item_date and time_str:
+                            # 다음 조회를 위해 가장 과거 시간 추적
+                            try:
+                                t_int = int(time_str)
+                                if min_time_val is None or t_int < min_time_val:
+                                    min_time_val = t_int
+                            except ValueError:
+                                pass
+                            
                             # 날짜 범위 확인
                             if item_date < start or item_date > end:
                                 continue
@@ -389,8 +402,22 @@ class QuoteAPI:
                                 volume=int(item.get("cntg_vol", 0)),
                             )
                     
+                    # 더 이상 데이터가 없거나 유효한 시간이 없는 경우 종료
+                    if min_time_val is None:
+                        break
+                        
+                    # 다음 조회 시간 설정 (최소 시간 - 1분)
+                    min_time_str = f"{min_time_val:06d}"
+                    last_dt = datetime.strptime(f"{date_str}{min_time_str}", "%Y%m%d%H%M%S")
+                    next_dt = last_dt - timedelta(minutes=1)
+                    search_time = next_dt.strftime("%H%M%S")
+                    
+                    # 09:00 이전이면 종료
+                    if search_time < "090000":
+                        break
+                        
                 except Exception:
-                    pass  # 데이터 없는 경우 무시
+                    break  # 오류 발생 시 해당 날짜 조회 중단
                 
                 # Rate Limit 대기
                 time.sleep(self._delay)
