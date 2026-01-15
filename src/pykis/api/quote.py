@@ -223,7 +223,8 @@ class QuoteAPI:
         """
         당일 분봉 데이터를 조회합니다.
         
-        ※ 주의: KIS API 제한으로 당일 데이터만 조회 가능합니다.
+        ※ 모의투자: 당일 데이터만 조회 가능
+        ※ 실전투자: 과거 분봉 조회 가능 (fetch_minute_ohlcv_range 사용)
         
         Args:
             symbol: 종목 코드 (예: "005930")
@@ -289,3 +290,116 @@ class QuoteAPI:
         sorted_data = sorted(all_data.values(), key=lambda x: x.datetime)
         
         return sorted_data
+    
+    def fetch_minute_ohlcv_range(
+        self,
+        symbol: str,
+        start_date: str,
+        end_date: Optional[str] = None,
+        interval: int = 1,
+    ) -> List[OHLCV]:
+        """
+        과거 일자의 분봉 데이터를 조회합니다.
+        
+        ※ 실전투자 전용 (모의투자 미지원)
+        ※ 최대 1년까지 과거 데이터 조회 가능
+        ※ 한 번 호출에 최대 120건 반환
+        
+        Args:
+            symbol: 종목 코드 (예: "005930")
+            start_date: 시작일 ("YYYYMMDD" 또는 "YYYY-MM-DD")
+            end_date: 종료일 (기본: 오늘)
+            interval: 분 간격 (1, 3, 5, 10, 15, 30, 60)
+            
+        Returns:
+            OHLCV 리스트 (과거 → 최근 순)
+            
+        Raises:
+            ValueError: 모의투자에서 호출 시
+            
+        Example:
+            # 어제 분봉 조회 (실전투자만)
+            ohlcv = kis.fetch_minute_ohlcv_range("005930", "20260114")
+            
+            # 특정 기간 5분봉
+            ohlcv = kis.fetch_minute_ohlcv_range("005930", "2026-01-10", "2026-01-14", interval=5)
+        """
+        if self._is_paper:
+            raise ValueError("fetch_minute_ohlcv_range는 실전투자에서만 사용 가능합니다. 모의투자는 fetch_minute_ohlcv로 당일 데이터만 조회하세요.")
+        
+        # 날짜 형식 정규화 (YYYYMMDD)
+        start = start_date.replace("-", "")
+        end = end_date.replace("-", "") if end_date else datetime.now().strftime("%Y%m%d")
+        
+        all_data = {}
+        
+        start_dt = datetime.strptime(start, "%Y%m%d")
+        end_dt = datetime.strptime(end, "%Y%m%d")
+        
+        # 날짜별로 조회 (각 날짜의 여러 시간대)
+        current_date = end_dt
+        
+        while current_date >= start_dt:
+            date_str = current_date.strftime("%Y%m%d")
+            
+            # 하루에 여러 시간대 조회 (120건씩)
+            times = ["153000", "130000", "100000"]
+            
+            for hour in times:
+                try:
+                    data = self._http.get(
+                        "/uapi/domestic-stock/v1/quotations/inquire-time-dailychartprice",
+                        "FHKST03010230",
+                        params={
+                            "FID_COND_MRKT_DIV_CODE": MarketCode.STOCK.value,
+                            "FID_INPUT_ISCD": symbol,
+                            "FID_INPUT_DATE_1": date_str,
+                            "FID_INPUT_HOUR_1": hour,
+                            "FID_PW_DATA_INCU_YN": "Y",
+                            "FID_FAKE_TICK_INCU_YN": "",
+                        },
+                    )
+                    
+                    items = data.get("output2", [])
+                    
+                    for item in items:
+                        item_date = item.get("stck_bsop_date", "")
+                        time_str = item.get("stck_cntg_hour", "")
+                        
+                        if item_date and time_str:
+                            # 날짜 범위 확인
+                            if item_date < start or item_date > end:
+                                continue
+                            
+                            key = f"{item_date}_{time_str}"
+                            
+                            # 분 간격 필터링
+                            minute = int(time_str[2:4])
+                            if interval > 1 and minute % interval != 0:
+                                continue
+                            
+                            dt = datetime.strptime(f"{item_date}{time_str}", "%Y%m%d%H%M%S")
+                            
+                            all_data[key] = OHLCV(
+                                datetime=dt,
+                                open=float(item.get("stck_oprc", 0)),
+                                high=float(item.get("stck_hgpr", 0)),
+                                low=float(item.get("stck_lwpr", 0)),
+                                close=float(item.get("stck_prpr", 0)),
+                                volume=int(item.get("cntg_vol", 0)),
+                            )
+                    
+                except Exception:
+                    pass  # 데이터 없는 경우 무시
+                
+                # Rate Limit 대기
+                time.sleep(self._delay)
+            
+            # 이전 날짜로
+            current_date = current_date - timedelta(days=1)
+        
+        # 시간순 정렬
+        sorted_data = sorted(all_data.values(), key=lambda x: x.datetime)
+        
+        return sorted_data
+

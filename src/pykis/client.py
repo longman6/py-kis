@@ -212,6 +212,43 @@ class KIS:
         """
         return self._quote.fetch_minute_ohlcv(symbol, interval)
     
+    def fetch_minute_ohlcv_range(
+        self,
+        symbol: str,
+        start_date: str,
+        end_date: Optional[str] = None,
+        interval: int = 1,
+    ) -> List[OHLCV]:
+        """
+        과거 일자의 분봉 데이터를 조회합니다.
+        
+        ※ 실전투자 전용 (모의투자 미지원)
+        ※ 최대 1년까지 과거 데이터 조회 가능
+        ※ 한 번 호출에 최대 120건 반환
+        
+        Args:
+            symbol: 종목 코드 (예: "005930")
+            start_date: 시작일 ("YYYYMMDD" 또는 "YYYY-MM-DD")
+            end_date: 종료일 (기본: 오늘)
+            interval: 분 간격 (1, 3, 5, 10, 15, 30, 60)
+            
+        Returns:
+            OHLCV 리스트 (과거 → 최근 순)
+            
+        Raises:
+            ValueError: 모의투자에서 호출 시
+            
+        Example:
+            ```python
+            # 어제 분봉 조회 (실전투자만)
+            ohlcv = kis.fetch_minute_ohlcv_range("005930", "20260114")
+            
+            # 특정 기간 5분봉
+            ohlcv = kis.fetch_minute_ohlcv_range("005930", "2026-01-10", "2026-01-14", interval=5)
+            ```
+        """
+        return self._quote.fetch_minute_ohlcv_range(symbol, start_date, end_date, interval)
+    
     # =========================================================================
     # Trading API
     # =========================================================================

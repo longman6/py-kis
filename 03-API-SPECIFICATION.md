@@ -219,7 +219,46 @@ for candle in ohlcv[-5:]:
     print(f"{candle.datetime.strftime('%H:%M')}: {candle.close:,.0f}원")
 ```
 
-⚠️ **제한사항:** KIS API 특성상 **당일 데이터만** 조회 가능합니다.
+⚠️ **제한사항:** 모의투자는 **당일 데이터만** 조회 가능합니다. 실전투자는 `fetch_minute_ohlcv_range`로 과거 분봉 조회 가능.
+
+---
+
+### 2.6 fetch_minute_ohlcv_range(symbol, start_date, end_date, interval)
+
+과거 일자의 분봉 조회 (실전투자 전용)
+
+```python
+def fetch_minute_ohlcv_range(
+    self,
+    symbol: str,
+    start_date: str,
+    end_date: Optional[str] = None,
+    interval: int = 1,
+) -> List[OHLCV]
+```
+
+**Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| symbol | str | ✓ | 종목 코드 |
+| start_date | str | ✓ | 시작일 ("YYYYMMDD" 또는 "YYYY-MM-DD") |
+| end_date | str | | 종료일 (기본: 오늘) |
+| interval | int | | 분 간격 (1, 3, 5, 10, 15, 30, 60) |
+
+**Example:**
+```python
+# 어제 분봉 조회 (실전투자만)
+ohlcv = kis.fetch_minute_ohlcv_range("005930", "20260114")
+
+# 특정 기간 5분봉
+ohlcv = kis.fetch_minute_ohlcv_range("005930", "2026-01-10", "2026-01-14", interval=5)
+```
+
+⚠️ **제한사항:**
+
+- **실전투자 전용** (모의투자 미지원)
+- 최대 **1년** 과거 데이터 조회 가능
+- 한 번 호출에 최대 120건 반환
 
 ---
 

@@ -64,8 +64,9 @@ kis.close()
 | 현재가 조회 | `fetch_ticker(symbol)` | 현재가, 등락률, 거래량 등 |
 | 호가 조회 | `fetch_order_book(symbol)` | 매수/매도 10단계 호가 |
 | OHLCV 조회 | `fetch_ohlcv(symbol, timeframe, limit)` | 최근 일/주/월봉 (최대 100개) |
-| 기간별 OHLCV | `fetch_ohlcv_range(symbol, start_date, end_date)` | 특정 기간 일봉 (여러 번 API 호출) |
-| 당일 분봉 | `fetch_minute_ohlcv(symbol, interval)` | 당일 분봉 (1, 5, 10, 30분 등) |
+| 기간별 OHLCV | `fetch_ohlcv_range(symbol, start_date, end_date)` | 특정 기간 일봉 |
+| 당일 분봉 | `fetch_minute_ohlcv(symbol, interval)` | 당일 분봉 |
+| 과거 분봉 | `fetch_minute_ohlcv_range(symbol, start_date)` | 과거 분봉 (실전투자 전용, 최대 1년) |
 
 ### 주문/계좌
 
@@ -146,5 +147,3 @@ MIT
 
 1. 반드시 **모의투자 환경**에서 먼저 테스트하세요
 2. 소액으로 시작하여 점진적으로 테스트하세요
-3. 자동매매 시스템은 24시간 모니터링하세요
-4. 중요한 거래는 수동으로 확인하세요

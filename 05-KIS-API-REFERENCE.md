@@ -228,7 +228,56 @@ FID_PW_DATA_INCU_YN: "N"
 }
 ```
 
-⚠️ **제한사항:** **당일 데이터만** 조회 가능.
+⚠️ **제한사항:** **당일 데이터만** 조회 가능. 과거 분봉은 3.6 참조.
+
+---
+
+### 3.6 주식일별분봉조회 (과거 분봉)
+
+**GET** `/uapi/domestic-stock/v1/quotations/inquire-time-dailychartprice`
+
+**TR_ID:** `FHKST03010230`
+
+⚠️ **실전투자 전용** (모의투자 미지원)
+
+**Parameters:**
+```
+FID_COND_MRKT_DIV_CODE: "J"        // J:KRX
+FID_INPUT_ISCD: "005930"           // 종목코드
+FID_INPUT_DATE_1: "20260114"       // 조회일자 (YYYYMMDD)
+FID_INPUT_HOUR_1: "153000"         // 시작시간 (HHMMSS)
+FID_PW_DATA_INCU_YN: "Y"           // 과거데이터 포함 여부
+FID_FAKE_TICK_INCU_YN: ""          // 허봉 포함 여부 (공백)
+```
+
+**Response:**
+```json
+{
+    "output1": {
+        "hts_kor_isnm": "삼성전자",    // 종목명
+        "stck_prpr": "57500",          // 현재가
+        "prdy_vrss": "500"             // 전일대비
+    },
+    "output2": [
+        {
+            "stck_bsop_date": "20260114",  // 일자
+            "stck_cntg_hour": "153000",    // 체결시간
+            "stck_prpr": "57500",          // 현재가
+            "stck_oprc": "57400",          // 시가
+            "stck_hgpr": "57600",          // 고가
+            "stck_lwpr": "57300",          // 저가
+            "cntg_vol": "25000",           // 체결량
+            "acml_tr_pbmn": "1000000000"   // 누적거래대금
+        }
+    ]
+}
+```
+
+**특징:**
+
+- 한 번 호출에 최대 **120건** 반환
+- 최대 **1년** 과거 데이터 조회 가능
+- `FID_INPUT_DATE_1`, `FID_INPUT_HOUR_1`로 기준 시점 지정
 
 ---
 
