@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pykis"
-version = "0.1.0"
+version = "0.1.1"
 description = "CCXT-style Python wrapper for KIS API (국내 주식)"
 authors = ["Your Name <you@example.com>"]
 license = "MIT"

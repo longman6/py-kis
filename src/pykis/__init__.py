@@ -23,7 +23,7 @@ Example:
 """
 
 # 버전 정보
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 # 메인 클라이언트
 from pykis.client import KIS
