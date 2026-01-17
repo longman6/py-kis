@@ -242,10 +242,10 @@ class QuoteAPI:
         """
         all_data = {}
         
-        # 여러 시간대로 나누어 조회 (장 시작~종료, 09:00 ~ 15:30)
-        times = ["153000", "140000", "120000", "100000", "093000"]
+        # 동적 시간 조회 (15:30부터 09:00까지 역순으로)
+        search_time = "153000"
         
-        for start_time in times:
+        while True:
             data = self._http.get(
                 "/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice",
                 "FHKST03010200",
@@ -253,18 +253,30 @@ class QuoteAPI:
                     "FID_ETC_CLS_CODE": "",
                     "FID_COND_MRKT_DIV_CODE": MarketCode.STOCK.value,
                     "FID_INPUT_ISCD": symbol,
-                    "FID_INPUT_HOUR_1": start_time,
+                    "FID_INPUT_HOUR_1": search_time,
                     "FID_PW_DATA_INCU_YN": "N",
                 },
             )
             
             items = data.get("output2", [])
+            if not items:
+                break
+            
+            min_time_val = None
             
             for item in items:
                 date_str = item.get("stck_bsop_date", "")
                 time_str = item.get("stck_cntg_hour", "")
                 
                 if date_str and time_str:
+                    # 다음 조회를 위해 가장 과거 시간 추적
+                    try:
+                        t_int = int(time_str)
+                        if min_time_val is None or t_int < min_time_val:
+                            min_time_val = t_int
+                    except ValueError:
+                        pass
+                    
                     key = f"{date_str}_{time_str}"
                     
                     # 분 간격 필터링
@@ -282,6 +294,21 @@ class QuoteAPI:
                         close=float(item.get("stck_prpr", 0)),
                         volume=int(item.get("cntg_vol", 0)),
                     )
+            
+            # 더 이상 데이터가 없거나 유효한 시간이 없는 경우 종료
+            if min_time_val is None:
+                break
+                
+            # 다음 조회 시간 설정 (최소 시간 - 1분)
+            min_time_str = f"{min_time_val:06d}"
+            today_str = datetime.now().strftime("%Y%m%d")
+            last_dt = datetime.strptime(f"{today_str}{min_time_str}", "%Y%m%d%H%M%S")
+            next_dt = last_dt - timedelta(minutes=1)
+            search_time = next_dt.strftime("%H%M%S")
+            
+            # 09:00 이전이면 종료
+            if search_time < "090000":
+                break
             
             # Rate Limit 대기
             time.sleep(self._delay)
